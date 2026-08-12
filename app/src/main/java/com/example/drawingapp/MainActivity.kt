@@ -2,6 +2,7 @@ package com.example.drawingapp
 
 import android.app.Dialog
 import android.os.Bundle
+import android.view.View
 import android.widget.ImageButton
 import android.widget.SeekBar
 import android.widget.TextView
@@ -10,11 +11,17 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var brushSizeBtn: ImageButton
     private lateinit var brushSizeDialog: Dialog
     private lateinit var brushSizeSeekBar: SeekBar
     private lateinit var brushSizeTextView: TextView
+    private lateinit var purpleBtn: ImageButton
+    private lateinit var orangeBtn: ImageButton
+    private lateinit var blueBtn: ImageButton
+    private lateinit var greenBtn: ImageButton
+    private lateinit var redBtn: ImageButton
+    private lateinit var drawingView: DrawingView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,7 +33,12 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        val drawingView: DrawingView = findViewById(R.id.drawingView)
+        drawingView = findViewById(R.id.drawingView)
+        purpleBtn = findViewById(R.id.purpleBtn)
+        orangeBtn = findViewById(R.id.orangeBtn)
+        blueBtn = findViewById(R.id.blueBtn)
+        greenBtn = findViewById(R.id.greenBtn)
+        redBtn = findViewById(R.id.redBtn)
 
 
         brushSizeBtn = findViewById(R.id.brushSizeBtn)
@@ -56,6 +68,22 @@ class MainActivity : AppCompatActivity() {
             brushSizeTextView.text = drawingView.getBrushSize().toString()
 
             brushSizeDialog.show()
+        }
+
+        purpleBtn.setOnClickListener(this)
+        orangeBtn.setOnClickListener(this)
+        blueBtn.setOnClickListener(this)
+        greenBtn.setOnClickListener(this)
+        redBtn.setOnClickListener(this)
+    }
+
+    override fun onClick(view: View?) {
+        when (view?.id) {
+            R.id.purpleBtn -> drawingView.changeBrushColor("#4A148C")
+            R.id.orangeBtn -> drawingView.changeBrushColor("#FF8800")
+            R.id.blueBtn -> drawingView.changeBrushColor("#0099CC")
+            R.id.greenBtn -> drawingView.changeBrushColor("#669900")
+            R.id.redBtn -> drawingView.changeBrushColor("#CC0000")
         }
     }
 }
