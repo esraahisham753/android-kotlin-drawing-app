@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">DrawingApp</string>
+    <string name="brushSize">20</string>
+    <string name="brush_size_button">brush size button</string>
+    <string name="save_button">save button</string>
+    <string name="gallery_button">gallery button</string>
+    <string name="color_picker">color picker</string>
+    <string name="purple_button">purple button</string>
+    <string name="orange_button">orange button</string>
+    <string name="blue_button">blue button</string>
 </resources>

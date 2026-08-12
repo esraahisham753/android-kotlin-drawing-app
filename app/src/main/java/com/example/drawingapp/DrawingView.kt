@@ -16,10 +16,11 @@ class DrawingView(context: Context, attr: AttributeSet): View(context, attr) {
     private lateinit var drawingPath: FingerPath
     private lateinit var drawingPaint: Paint
     private var color = Color.BLACK
-    private var brushThickness = 0f
+    private var brushThickness = 0
     private lateinit var canvas: Canvas
     private lateinit var canvasPaint: Paint
     private lateinit var canvasBitmap: Bitmap
+    private var brushSizeDP = 0
 
     init {
         setupDrawing()
@@ -43,7 +44,7 @@ class DrawingView(context: Context, attr: AttributeSet): View(context, attr) {
             if (!drawingPath.isEmpty) {
                 drawingPaint.apply {
                     color = drawingPath.color
-                    strokeWidth = drawingPath.brushThickness
+                    strokeWidth = drawingPath.brushThickness.toFloat()
                 }
 
                 canvas.drawPath(drawingPath, drawingPaint)
@@ -105,7 +106,8 @@ class DrawingView(context: Context, attr: AttributeSet): View(context, attr) {
     }
 
     fun setupDrawing() {
-        brushThickness = 20f
+        brushThickness = 20
+        brushSizeDP = 20
         drawingPath = FingerPath(color, brushThickness)
         drawingPaint = Paint()
 
@@ -119,19 +121,24 @@ class DrawingView(context: Context, attr: AttributeSet): View(context, attr) {
         canvasPaint = Paint(Paint.DITHER_FLAG)
     }
 
-    fun changeBrushSize(newSize: Float) {
+    fun changeBrushSize(newSize: Int) {
+        brushSizeDP = newSize
         brushThickness = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
-            newSize,
+            newSize.toFloat(),
             resources.displayMetrics
-        )
+        ).toInt()
 
         drawingPath.brushThickness = brushThickness
 
-        drawingPaint.strokeWidth = brushThickness
+        drawingPaint.strokeWidth = brushThickness.toFloat()
     }
 
-    internal inner class FingerPath(var color: Int, var brushThickness: Float): Path() {
+    fun getBrushSize(): Int {
+        return brushSizeDP
+    }
+
+    internal inner class FingerPath(var color: Int, var brushThickness: Int): Path() {
 
     }
 }
