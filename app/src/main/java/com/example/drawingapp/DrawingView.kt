@@ -22,6 +22,7 @@ class DrawingView(context: Context, attr: AttributeSet): View(context, attr) {
     private lateinit var canvasPaint: Paint
     private lateinit var canvasBitmap: Bitmap
     private var brushSizeDP = 0
+    private val drawingPaths = mutableListOf<FingerPath>()
 
     init {
         setupDrawing()
@@ -42,14 +43,17 @@ class DrawingView(context: Context, attr: AttributeSet): View(context, attr) {
         if (::canvasBitmap.isInitialized) {
             canvas.drawBitmap(canvasBitmap, 0f, 0f, canvasPaint)
 
-            if (!drawingPath.isEmpty) {
-                drawingPaint.apply {
-                    color = drawingPath.color
-                    strokeWidth = drawingPath.brushThickness.toFloat()
+            for (path in drawingPaths) {
+                if (!path.isEmpty) {
+                    drawingPaint.color = path.color
+                    drawingPaint.strokeWidth = path.brushThickness.toFloat()
+                    canvas.drawPath(path, drawingPaint)
                 }
-
-                canvas.drawPath(drawingPath, drawingPaint)
             }
+
+            drawingPaint.color = drawingPath.color
+            drawingPaint.strokeWidth = drawingPath.brushThickness.toFloat()
+            canvas.drawPath(drawingPath, drawingPaint)
         }
     }
 
@@ -59,10 +63,8 @@ class DrawingView(context: Context, attr: AttributeSet): View(context, attr) {
 
         when (event?.action) {
             MotionEvent.ACTION_DOWN -> {
-                drawingPath.apply {
-                    color = color
-                    brushThickness = brushThickness
-                }
+                drawingPath.color = color
+                drawingPath.brushThickness = brushThickness
 
                 drawingPath.reset()
 
@@ -78,17 +80,18 @@ class DrawingView(context: Context, attr: AttributeSet): View(context, attr) {
             }
 
             MotionEvent.ACTION_UP -> {
-                drawingPath.apply {
-                    color = color
-                    brushThickness = brushThickness
-                }
+                drawingPath.color = color
+                drawingPath.brushThickness = brushThickness
 
                 drawingPaint.apply {
                     color = drawingPath.color
                     brushThickness = drawingPath.brushThickness
                 }
 
-                canvas.drawPath(drawingPath, drawingPaint)
+                // canvas.drawPath(drawingPath, drawingPaint)
+                val clonedPath = FingerPath(color, brushThickness)
+                clonedPath.set(drawingPath)
+                drawingPaths.add(clonedPath)
                 drawingPath.reset()
 
                 performClick()
@@ -143,6 +146,13 @@ class DrawingView(context: Context, attr: AttributeSet): View(context, attr) {
         color = newColor.toColorInt()
         drawingPath.color = color
         drawingPaint.color = color
+    }
+
+    fun undo() {
+        if (drawingPaths.isNotEmpty()) {
+            drawingPaths.removeAt(drawingPaths.size - 1)
+            invalidate()
+        }
     }
 
     internal inner class FingerPath(var color: Int, var brushThickness: Int): Path() {
