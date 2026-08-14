@@ -1,14 +1,23 @@
 package com.example.drawingapp
 
+import android.Manifest
 import android.app.Dialog
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.registerForActivityResult
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.skydoves.colorpickerview.ColorEnvelope
@@ -28,6 +37,20 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var drawingView: DrawingView
     private lateinit var undoBtn: ImageButton
     private lateinit var colorPickerBtn: ImageButton
+    private lateinit var galleryBtn: ImageButton
+
+    private val permissionRequest: ActivityResultLauncher<Array<String>> = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions() ) {
+            permissions ->
+        var isGranted = false
+        permissions.entries.forEach {
+            if (it.value) isGranted = true
+        }
+
+        if (isGranted) Toast.makeText(this, "Permission granted", Toast.LENGTH_SHORT).show()
+        else Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
+
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +70,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         redBtn = findViewById(R.id.redBtn)
         undoBtn = findViewById(R.id.undoBtn)
         colorPickerBtn = findViewById(R.id.colorPickerBtn)
+        galleryBtn = findViewById(R.id.galleryBtn)
 
 
         brushSizeBtn = findViewById(R.id.brushSizeBtn)
@@ -85,6 +109,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         redBtn.setOnClickListener(this)
         undoBtn.setOnClickListener(this)
         colorPickerBtn.setOnClickListener(this)
+        galleryBtn.setOnClickListener(this)
     }
 
     override fun onClick(view: View?) {
@@ -96,11 +121,27 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             R.id.redBtn -> drawingView.changeBrushColor("#CC0000")
             R.id.undoBtn -> drawingView.undo()
             R.id.colorPickerBtn -> showColorPickerDialog()
+            R.id.galleryBtn -> {
+                val isGranted =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        getRequiredPermissions().any { ActivityCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED }
+                    }
+                    else {
+                        getRequiredPermissions().all { ActivityCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED }
+                    }
+
+                if (isGranted) {
+                    Toast.makeText(this, "Granted click", Toast.LENGTH_SHORT).show()
+                } else {
+                    showRequest()
+                }
+            }
         }
     }
 
     private fun showColorPickerDialog() {
         ColorPickerDialog.Builder(this)
+            .setTitle("Color Picker")
             .setPositiveButton("Confirm", object : ColorEnvelopeListener {
                 override fun onColorSelected(
                     envelope: ColorEnvelope?,
@@ -113,5 +154,51 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             .attachAlphaSlideBar(true)
             .attachBrightnessSlideBar(true)
             .show()
+    }
+
+    private fun showRequest() {
+        val permissions = getRequiredPermissions()
+
+        val shouldShowRationale = permissions.any {
+            shouldShowRequestPermissionRationale(it)
+        }
+        if (shouldShowRationale) {
+            showRationaleDialog("Access to Gallery Required", "Please, you need to grant our app access to external storage to be able to edit images")
+        } else {
+            permissionRequest.launch(permissions)
+        }
+    }
+
+    private fun showRationaleDialog(title: String, message: String) {
+        val permissions = getRequiredPermissions()
+
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton("Ok") {
+                _, _ ->
+                    permissionRequest.launch(permissions)
+
+            }
+            .setNegativeButton("Cancel") {
+                dialog, _ ->
+                    dialog.dismiss()
+            }
+            .create()
+            .show()
+    }
+
+    private fun getRequiredPermissions(): Array<String> {
+        val permissions =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                arrayOf(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED, Manifest.permission.READ_MEDIA_IMAGES)
+            }
+            else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
+            } else {
+                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+
+        return permissions
     }
 }
