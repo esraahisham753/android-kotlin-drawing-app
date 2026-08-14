@@ -7,26 +7,39 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <ImageView
-        android:id="@+id/galleryImage"
-        android:contentDescription="@string/image_to_edit"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/drawingConstraintL"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-    <com.example.drawingapp.DrawingView
-        android:id="@+id/drawingView"
-        android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/toolsConstraintL"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/colorsConstraintL"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+        <ImageView
+            android:id="@+id/galleryImage"
+            android:contentDescription="@string/image_to_edit"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <com.example.drawingapp.DrawingView
+            android:id="@+id/drawingView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/colorsConstraintL"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@+id/drawingView"
+        app:layout_constraintTop_toBottomOf="@+id/drawingConstraintL"
         app:layout_constraintBottom_toTopOf="@+id/toolsConstraintL"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

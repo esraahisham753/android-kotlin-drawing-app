@@ -2,12 +2,14 @@ package com.example.drawingapp
 
 import android.Manifest
 import android.app.Dialog
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -39,6 +41,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var colorPickerBtn: ImageButton
     private lateinit var galleryBtn: ImageButton
 
+    private val openGalleryLauncher: ActivityResultLauncher<String> = registerForActivityResult(
+        ActivityResultContracts.GetContent()) {
+            uri ->
+        uri?.let {
+            findViewById<ImageView>(R.id.galleryImage).setImageURI(it)
+        }
+    }
+
     private val permissionRequest: ActivityResultLauncher<Array<String>> = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions() ) {
             permissions ->
@@ -47,9 +57,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             if (it.value) isGranted = true
         }
 
-        if (isGranted) Toast.makeText(this, "Permission granted", Toast.LENGTH_SHORT).show()
+        if (isGranted) openGalleryLauncher.launch("image/*")
         else Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
-
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -131,7 +140,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     }
 
                 if (isGranted) {
-                    Toast.makeText(this, "Granted click", Toast.LENGTH_SHORT).show()
+                    openGalleryLauncher.launch("image/*")
                 } else {
                     showRequest()
                 }
