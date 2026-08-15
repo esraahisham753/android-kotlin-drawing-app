@@ -2,10 +2,15 @@ package com.example.drawingapp
 
 import android.Manifest
 import android.app.Dialog
+import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
@@ -19,12 +24,24 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.registerForActivityResult
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.skydoves.colorpickerview.ColorEnvelope
 import com.skydoves.colorpickerview.ColorPickerDialog
 import com.skydoves.colorpickerview.listeners.ColorEnvelopeListener
+import androidx.core.graphics.createBitmap
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.io.OutputStream
+import java.util.Random
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var brushSizeBtn: ImageButton
@@ -40,6 +57,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var undoBtn: ImageButton
     private lateinit var colorPickerBtn: ImageButton
     private lateinit var galleryBtn: ImageButton
+    private lateinit var saveBtn: ImageButton
 
     private val openGalleryLauncher: ActivityResultLauncher<String> = registerForActivityResult(
         ActivityResultContracts.GetContent()) {
@@ -61,6 +79,19 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         else Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
     }
 
+    private val writePermissionRequest: ActivityResultLauncher<String> = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()) {
+        isGranted ->
+            if (isGranted) {
+                val bitmap = getBitmapFromView(findViewById<ConstraintLayout>(R.id.drawingConstraintL))
+                lifecycleScope.launch {
+                    saveImageToStorage(bitmap)
+                }
+            } else {
+                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show()
+            }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -80,6 +111,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         undoBtn = findViewById(R.id.undoBtn)
         colorPickerBtn = findViewById(R.id.colorPickerBtn)
         galleryBtn = findViewById(R.id.galleryBtn)
+        saveBtn = findViewById(R.id.saveBtn)
 
 
         brushSizeBtn = findViewById(R.id.brushSizeBtn)
@@ -119,6 +151,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         undoBtn.setOnClickListener(this)
         colorPickerBtn.setOnClickListener(this)
         galleryBtn.setOnClickListener(this)
+        saveBtn.setOnClickListener(this)
     }
 
     override fun onClick(view: View?) {
@@ -143,6 +176,22 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     openGalleryLauncher.launch("image/*")
                 } else {
                     showRequest()
+                }
+            }
+            R.id.saveBtn -> {
+                val isGranted = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+                    checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+                } else {
+                    true
+                }
+
+                if (isGranted) {
+                    val bitmap = getBitmapFromView(findViewById<ConstraintLayout>(R.id.drawingConstraintL))
+                    lifecycleScope.launch {
+                        saveImageToStorage(bitmap)
+                    }
+                } else {
+                    writePermissionRequest.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 }
             }
         }
@@ -209,5 +258,60 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             }
 
         return permissions
+    }
+
+    private fun getBitmapFromView(view: View): Bitmap {
+        val bitmap = createBitmap(view.width, view.height)
+        val canvas = Canvas(bitmap)
+        view.draw(canvas)
+
+        return bitmap
+    }
+
+    private suspend fun saveImageToStorage(bitmap: Bitmap) {
+       withContext(Dispatchers.IO) {
+           val fileName = "drawing_${System.currentTimeMillis()}.jpg"
+           var fos: OutputStream? = null
+
+           try {
+               if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                   val contentValues = ContentValues().apply {
+                       put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                       put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                       put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/DrawingApp")
+                   }
+
+                   val imageUri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+
+                   fos = imageUri?.let {
+                       contentResolver.openOutputStream(it)
+                   }
+               } else {
+                   val imagesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString()
+                   val imageDir = File(imagesDir, "DrawingApp")
+
+                   if (! imageDir.exists()) imageDir.mkdirs()
+
+                   val image = File(imageDir, fileName)
+                   fos = FileOutputStream(image)
+               }
+
+               fos?.use {
+                   bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+
+                   withContext(Dispatchers.Main) {
+                       Toast.makeText(this@MainActivity, "Image saved Successfully", Toast.LENGTH_SHORT).show()
+                   }
+               }
+           } catch (e: Exception) {
+               e.printStackTrace()
+
+               withContext(Dispatchers.Main) {
+                   Toast.makeText(this@MainActivity, "Error saving the image", Toast.LENGTH_SHORT).show()
+               }
+           }
+
+           // fos?.close()
+       }
     }
 }
